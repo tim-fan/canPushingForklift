@@ -1,21 +1,19 @@
 #include <TableSensor.h>
 
-
 //Basic test for motor controller, turns left and right repeatedly
 //Uses timer1 library to call motor controller update function
 
-int rightFrontEdgeSensorPin = A0;                                                                                                                                                                                                                                                  
-int leftFrontEdgeSensorPin = A1;                                                                                                                                                                                                                                                   
-int rightBackEdgeSensorPin = A2;                                                                                                                                                                                                                                                   
-int leftBackEdgeSensorPin = A3; 
+int rightFrontEdgeSensorPin = A0;
+int leftFrontEdgeSensorPin = A1;
+int rightBackEdgeSensorPin = A2;
+int leftBackEdgeSensorPin = A3;
 
 int tableSensorThreshold = 500; //out of total analog range 1023
 
 TableSensor rightFrontEdgeSensor(rightFrontEdgeSensorPin, tableSensorThreshold);
 TableSensor leftFrontEdgeSensor(leftFrontEdgeSensorPin, tableSensorThreshold);
-TableSensor rightBackEdgeSensor(rightBackEdgeSensorPin,tableSensorThreshold);
-TableSensor leftBackEdgeSensor(leftBackEdgeSensorPin,tableSensorThreshold);
-
+TableSensor rightBackEdgeSensor(rightBackEdgeSensorPin, tableSensorThreshold);
+TableSensor leftBackEdgeSensor(leftBackEdgeSensorPin, tableSensorThreshold);
 
 void setup(){
   Serial.begin(9600);

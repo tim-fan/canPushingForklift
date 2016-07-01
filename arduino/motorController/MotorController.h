@@ -23,6 +23,7 @@ public:
   //direction control
   void turnLeft();
   void turnRight();
+  void changeDirection();
   void goForward();
   void goBackward();
   void stop();

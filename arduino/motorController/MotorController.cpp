@@ -41,6 +41,16 @@ void MotorController::turnRight()
   }
 }
 
+void MotorController::changeDirection()
+{
+ if (_turnState == LEFT){
+   turnRight();
+ }
+ else{
+   turnLeft();
+ }
+}
+
 void MotorController::goForward()
 {
   digitalWrite(_backwardPin, LOW);

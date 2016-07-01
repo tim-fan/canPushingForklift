@@ -20,14 +20,9 @@ void updateMotorController(void){
   motorController.update();
 }
 
-void setup(){
-  pinMode(LED_BUILTIN, OUTPUT);
-  motorController.attach(forwardPin, backwardPin, leftPin, rightPin);
-  Timer1.initialize();
-  Timer1.attachInterrupt(updateMotorController, 200000); //update motor controller at 50 Hz
-}
-
-void loop(){
+//define a few different test sequences. Call from 'loop' to activate
+void testAllDirections(){
+  //runs steering and drive in all possible directions  
   ledState = !ledState;
   digitalWrite(LED_BUILTIN, ledState);
 
@@ -48,4 +43,24 @@ void loop(){
   delay(2000);
   motorController.turnRight();
   delay(2000);
+
+}
+
+void testChangeDirection(){
+  //test the motor controller's changeDirection  
+  motorController.changeDirection();
+  delay(2000);
+}
+
+
+void setup(){
+  pinMode(LED_BUILTIN, OUTPUT);
+  motorController.attach(forwardPin, backwardPin, leftPin, rightPin);
+  Timer1.initialize();
+  Timer1.attachInterrupt(updateMotorController, 200000); //update motor controller at 50 Hz
+}
+
+void loop(){
+//  testAllDirections();
+  testChangeDirection();
 }

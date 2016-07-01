@@ -1,5 +1,7 @@
 #include <TableSensor.h>
 #include <MotorController.h>
+#include <TimerOne.h>
+
 
 int forwardPin = 11;
 int backwardPin = 10;
@@ -30,12 +32,6 @@ MotionState motionState = CHASE_CANS;
 
 unsigned long currentStateStartTime;
 
-void setup() {
-  motorController.attach(forwardPin, backwardPin, leftPin, rightPin);
-  Serial.begin(9600);
-  Serial.println("Forklift controller begin");
-}
-
 void printState(MotionState state){
   switch(state)
   {
@@ -51,9 +47,18 @@ void printState(MotionState state){
   }
 }
 
+void updateMotorController(void){
+  motorController.update();
+}
+
+void setup() {
+  motorController.attach(forwardPin, backwardPin, leftPin, rightPin);
+  Timer1.initialize();
+  Timer1.attachInterrupt(updateMotorController, 200000); //update motor controller at 50 Hz
+}
+
 void loop() {
-  //read inputs:
-  
+  //read inputs:  
   //will abbreviate naming of sensors, as follows: rf = rightFront, lb = leftBack, etc.
   boolean rfOnTable = rightFrontEdgeSensor.isOnTable();
   boolean lfOnTable = leftFrontEdgeSensor.isOnTable();
@@ -87,6 +92,7 @@ void loop() {
       }
       else if (timeInCurrentState > 2000){
         nextMotionState = CHASE_CANS;
+        motorController.changeDirection(); //swap drive direction when returning to 'chase can' state
       }
       break;
 
@@ -99,13 +105,13 @@ void loop() {
       }
       else if (timeInCurrentState > 1000){
         nextMotionState = CHASE_CANS;
+        motorController.changeDirection(); //swap drive direction when returning to 'chase can' state
       }
       break;
   }
 
   if (nextMotionState != motionState){
     motionState = nextMotionState;
-    printState(motionState);
     currentStateStartTime = millis();
   }
 
@@ -131,10 +137,10 @@ void loop() {
     case AVOID_BACKWARD_EDGE:
       // move forward and away from edge
       motorController.goForward();
-      if (!rfOnTable){
+      if (!rbOnTable){
         motorController.turnLeft();
       }
-      else if (!lfOnTable){
+      else if (!lbOnTable){
         motorController.turnRight();
       }
       break;
