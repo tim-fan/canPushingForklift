@@ -1,197 +1,142 @@
-#include "TimerOne.h"
-#include "PixyUART.h"
-#include "Camera.h"
+#include <TableSensor.h>
+#include <MotorController.h>
 
+int forwardPin = 11;
+int backwardPin = 10;
+int leftPin = 6;
+int rightPin = 8;
 
-Camera camera;
+MotorController motorController;
 
-int forward = 11;
-int backward = 10;
-int left = 6;
-int right = 8;
-int rightFrontEdgeSensor = A0;
-int leftFrontEdgeSensor = A1;
-int rightBackEdgeSensor = A2;
-int leftBackEdgeSensor = A3;
-long turnTime = 100000;
-int blobTargetHeight = 10;
-int currentTurn;
+int rightFrontEdgeSensorPin = A0;
+int leftFrontEdgeSensorPin = A1;
+int rightBackEdgeSensorPin = A2;
+int leftBackEdgeSensorPin = A3;
 
-void clearTurn(){
-  //digitalWrite(LED_BUILTIN, LOW);
-  digitalWrite(left, LOW);  
-  digitalWrite(right, LOW);
-}
+int tableSensorThreshold = 500; //out of total analog range 1023
 
-void turn(int directionPin)
+TableSensor rightFrontEdgeSensor(rightFrontEdgeSensorPin, tableSensorThreshold);
+TableSensor leftFrontEdgeSensor(leftFrontEdgeSensorPin, tableSensorThreshold);
+TableSensor rightBackEdgeSensor(rightBackEdgeSensorPin, tableSensorThreshold);
+TableSensor leftBackEdgeSensor(leftBackEdgeSensorPin, tableSensorThreshold);
+enum MotionState
 {
-  clearTurn();  
-  Timer1.detachInterrupt();
-  
-  digitalWrite(directionPin, HIGH);
-  //digitalWrite(LED_BUILTIN, HIGH);
-  
-  Timer1.attachInterrupt(clearTurn, turnTime);
-  currentTurn = directionPin;
-}
+  CHASE_CANS,
+  AVOID_FORWARD_EDGE,
+  AVOID_BACKWARD_EDGE
+};
 
-void reverseTurn(void)
-{
-  if (currentTurn == left)
-  {
-    turn(right);
-  }
-  else
-  {
-    turn(left);
-  }
-}
+MotionState motionState = CHASE_CANS;
 
-void move(int directionPin)
-{
-  if (directionPin == forward)
-  {
-    digitalWrite(backward, LOW);
-    digitalWrite(forward, HIGH);    
-  }
-  else
-  {
-    digitalWrite(forward, LOW);
-    digitalWrite(backward, HIGH);
-  }  
-}
-void stopMoving()
-{
-    digitalWrite(forward, LOW);
-    digitalWrite(backward, LOW);
-}
-
-boolean edgeSensorOnTable(int sensorPin)
-{
-  int sensorThresholdPercentage = 50;
-  int sensorVal = analogRead(sensorPin);
-  int sensorPercent = map(sensorVal, 0, 1023, 0, 100); 
-  boolean sensorOnTable = sensorPercent < sensorThresholdPercentage;
-  return sensorOnTable;
-}
-
-void turnTest()
-{
-  turn(left);
-  delay(2000);
-  turn(right);
-  delay(2000);
-}
-
-void moveTest()
-{
-  move(forward);
-  delay(2000);
-  move(backward);
-  delay(2000);
-  stopMoving();
-}
+unsigned long currentStateStartTime;
 
 void setup() {
-  Timer1.initialize();
-  pinMode(forward,OUTPUT);
-  pinMode(backward,OUTPUT);
-  pinMode(left,OUTPUT);
-  pinMode(right,OUTPUT);
-  pinMode(LED_BUILTIN ,OUTPUT);
-  //Serial.begin(9600);
-  //Serial.println("Forklift debug info:");
-  stopMoving();
-  //turn(right);
-  delay(2000);
-  //move(forward);
-  //camera.init(); // note: this initialises serial to baud = 19200
+  motorController.attach(forwardPin, backwardPin, leftPin, rightPin);
+  Serial.begin(9600);
+  Serial.println("Forklift controller begin");
+}
+
+void printState(MotionState state){
+  switch(state)
+  {
+    case CHASE_CANS:
+      Serial.println("State: Chase cans");
+      break;
+    case AVOID_FORWARD_EDGE:
+      Serial.println("State: avoiding forward edge");
+      break;
+    case AVOID_BACKWARD_EDGE:
+      Serial.println("State: avoiding backward edge");
+      break;
+  }
 }
 
 void loop() {
-  turnTest();
-  moveTest();
-  // check table sensors
-  /*
-  boolean rightFrontOnTable = edgeSensorOnTable(rightFrontEdgeSensor);  
-  boolean leftFrontOnTable = edgeSensorOnTable(leftFrontEdgeSensor);
-  boolean rightBackOnTable = edgeSensorOnTable(rightBackEdgeSensor);  
-  boolean leftBackOnTable = edgeSensorOnTable(leftBackEdgeSensor);
-  int numSensorsOnTable = int(rightFrontOnTable) + int(leftFrontOnTable) + int(rightBackOnTable) + int(leftBackOnTable);
-  boolean allOnTable = (numSensorsOnTable == 4);
-  boolean moreThanOneOffTable = (numSensorsOnTable < 3);
-  boolean allOffTable = (numSensorsOnTable == 0);
-  */
+  //read inputs:
   
-  /*
-  // check camera
-  camera.refresh();
-  uint16_t blobX = camera.blobX;
-  uint16_t blobY = camera.blobY;
-  
-  
-  if (!camera.seesBlob || !allOnTable)
-    stopMoving();
-  else 
-  {
-    move(forward);
-    if (blobX < 319/2)
-      turn(left);
-    else
-      turn(right);
-  }
- 
-  
-  //turnTest();
-  Serial.print(blobX);
-  Serial.print("\t");
-  Serial.println(blobY);
-  digitalWrite(LED_BUILTIN, camera.seesBlob);
-  //delay(50);
-  //digitalWrite(LED_BUILTIN, moreThanOneOffTable);
-  //digitalWrite(LED_BUILTIN, HIGH);
-  //delay(100);
-   */
-  /*
-  Serial.print("rightFrontOnTable: ");
-  Serial.print(rightFrontOnTable, BIN);
-  
-  Serial.print("\tleftFrontOnTable:  ");
-  Serial.print(leftFrontOnTable, BIN);
-  
-  Serial.print("\trightBackOnTable:  ");
-  Serial.print(rightBackOnTable, BIN);
-  
-  Serial.print("\tleftBackOnTable:   ");
-  Serial.println(leftBackOnTable, BIN);
-  */
+  //will abbreviate naming of sensors, as follows: rf = rightFront, lb = leftBack, etc.
+  boolean rfOnTable = rightFrontEdgeSensor.isOnTable();
+  boolean lfOnTable = leftFrontEdgeSensor.isOnTable();
+  boolean rbOnTable = rightBackEdgeSensor.isOnTable();
+  boolean lbOnTable = leftBackEdgeSensor.isOnTable();
+  unsigned long timeInCurrentState = millis() - currentStateStartTime;
 
-  /*
-  if (allOffTable)
+  //detect events:
+  boolean frontSensorOffTable = !(rfOnTable && lfOnTable); 
+  boolean backSensorOffTable = !(rbOnTable && lbOnTable);
+  
+  //next state logic:
+  MotionState nextMotionState = motionState;
+  switch(motionState)
   {
-    stopMoving();
-  }
-  else if (!rightFrontOnTable)
-  {
-    turn(right);
-    move(backward); 
-  }
-  else if (!leftFrontOnTable)
-  {
-    turn(left);
-    move(backward);
-  }
-  else if (!rightBackOnTable)
-  {
-    turn(left);
-    move(forward);
-  }
-  else if (!leftBackOnTable)
-  {
-    turn(right);
-    move(forward);
+    case CHASE_CANS:
+      if (frontSensorOffTable){
+        nextMotionState = AVOID_FORWARD_EDGE;
+      }
+      else {
+        nextMotionState = CHASE_CANS;
+      }
+      break;
+
+    case AVOID_FORWARD_EDGE:
+      if (frontSensorOffTable){
+        nextMotionState = AVOID_FORWARD_EDGE;
+      }
+      else if (backSensorOffTable){
+        nextMotionState = AVOID_BACKWARD_EDGE;
+      }
+      else if (timeInCurrentState > 2000){
+        nextMotionState = CHASE_CANS;
+      }
+      break;
+
+    case AVOID_BACKWARD_EDGE:
+      if (frontSensorOffTable){
+        nextMotionState = AVOID_FORWARD_EDGE;
+      }
+      else if (backSensorOffTable){
+        nextMotionState = AVOID_BACKWARD_EDGE;
+      }
+      else if (timeInCurrentState > 1000){
+        nextMotionState = CHASE_CANS;
+      }
+      break;
   }
 
-  */
-  
+  if (nextMotionState != motionState){
+    motionState = nextMotionState;
+    printState(motionState);
+    currentStateStartTime = millis();
+  }
+
+  //state outputs:
+  switch(motionState)
+  {
+    case CHASE_CANS:
+      // go forward, try to push cans off table
+      motorController.goForward();
+      break;
+
+    case AVOID_FORWARD_EDGE:
+      // backup and turn away from edge
+      motorController.goBackward();
+      if (!rfOnTable){
+        motorController.turnRight();
+      }
+      else if (!lfOnTable){
+        motorController.turnLeft();
+      }
+      break;
+
+    case AVOID_BACKWARD_EDGE:
+      // move forward and away from edge
+      motorController.goForward();
+      if (!rfOnTable){
+        motorController.turnLeft();
+      }
+      else if (!lfOnTable){
+        motorController.turnRight();
+      }
+      break;
+  }
 }
