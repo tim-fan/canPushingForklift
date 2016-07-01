@@ -13,7 +13,6 @@ Class to control motors for forklift.
 #define MotorController_h
 
 #include "Arduino.h"
-#include "TimerOne.h"
 
 class MotorController
 {
