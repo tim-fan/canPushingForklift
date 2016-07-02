@@ -28,6 +28,9 @@ public:
   void goBackward();
   void stop();
 
+  //blocks subsequent calls to go forward/backward (for testing purposes)
+  void disableDrive(); 
+
   //call this repeatedly when using steer controller
   //(responsible for turning steer motor off)
   void update();
@@ -38,6 +41,7 @@ private:
   int _backwardPin;
   int _leftPin;
   int _rightPin;
+  boolean _driveEnabled;
   
   enum TurnState
   {

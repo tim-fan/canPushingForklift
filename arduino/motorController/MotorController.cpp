@@ -4,6 +4,7 @@
 MotorController::MotorController() 
 {
   _turnDuration = 400000; //time (in uS) to hold turining pin high
+  _driveEnabled = true;
 }
 
 void MotorController::attach(int forwardPin, int backwardPin, int leftPin, int rightPin)
@@ -53,12 +54,20 @@ void MotorController::changeDirection()
 
 void MotorController::goForward()
 {
+  if (!_driveEnabled)
+  {
+    return;
+  }
   digitalWrite(_backwardPin, LOW);
   digitalWrite(_forwardPin, HIGH);
 }
 
 void MotorController::goBackward()
 {
+  if (!_driveEnabled)
+  {
+    return;
+  }
   digitalWrite(_forwardPin, LOW);
   digitalWrite(_backwardPin, HIGH);
 }
@@ -69,6 +78,10 @@ void MotorController::stop()
   digitalWrite(_backwardPin, LOW);
 }
 
+void MotorController::disableDrive()
+{
+  _driveEnabled = false;
+}
 void MotorController::update()
 {
   //stop driving the turn motor, if has been driven for long enough

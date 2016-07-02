@@ -1,37 +1,48 @@
 #include <TableSensor.h>
 #include <MotorController.h>
+#include <PixyAnalog.h>
 #include <TimerOne.h>
 
-
+//Motor controller pins:
 int forwardPin = 11;
 int backwardPin = 10;
 int leftPin = 6;
 int rightPin = 8;
 
-MotorController motorController;
-
+//edge sensor pins:
 int rightFrontEdgeSensorPin = A0;
 int leftFrontEdgeSensorPin = A1;
 int rightBackEdgeSensorPin = A2;
 int leftBackEdgeSensorPin = A3;
 
-int tableSensorThreshold = 500; //out of total analog range 1023
+//pixy cam pins:
+int pixyDetectionPin = A4;
+int pixyObjectPosPin = A5;
 
+//config parameters:
+int pixyCenterVal = 600;
+int tableSensorThreshold = 500; //out of total analog range 1023
+boolean disableDrive = false; //set to true to prevent truck driving (for testing)
+
+//Sensor/Control objects:
 TableSensor rightFrontEdgeSensor(rightFrontEdgeSensorPin, tableSensorThreshold);
 TableSensor leftFrontEdgeSensor(leftFrontEdgeSensorPin, tableSensorThreshold);
 TableSensor rightBackEdgeSensor(rightBackEdgeSensorPin, tableSensorThreshold);
 TableSensor leftBackEdgeSensor(leftBackEdgeSensorPin, tableSensorThreshold);
+MotorController motorController;
+PixyAnalog pixyCam(pixyDetectionPin, pixyObjectPosPin, pixyCenterVal);
+
+//FSM variables:
 enum MotionState
 {
   CHASE_CANS,
   AVOID_FORWARD_EDGE,
   AVOID_BACKWARD_EDGE
 };
-
 MotionState motionState = CHASE_CANS;
-
 unsigned long currentStateStartTime;
 
+//util functions
 void printState(MotionState state){
   switch(state)
   {
@@ -51,10 +62,16 @@ void updateMotorController(void){
   motorController.update();
 }
 
+
+//Main arduino sketch:
+
 void setup() {
   motorController.attach(forwardPin, backwardPin, leftPin, rightPin);
   Timer1.initialize();
   Timer1.attachInterrupt(updateMotorController, 200000); //update motor controller at 50 Hz
+  if (disableDrive){
+    motorController.disableDrive();
+  }
 }
 
 void loop() {
@@ -121,6 +138,20 @@ void loop() {
     case CHASE_CANS:
       // go forward, try to push cans off table
       motorController.goForward();
+
+      //steer towards detected cans
+      if (pixyCam.detectsObject())
+      {
+        if (pixyCam.objectXPosition() < 0)
+        { //can to left
+          motorController.turnLeft();
+        }
+        else
+        { //can to right
+          motorController.turnRight();  
+        }
+      }
+      
       break;
 
     case AVOID_FORWARD_EDGE:
