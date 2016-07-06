@@ -1,7 +1,6 @@
 #include <TableSensor.h>
 
-//Basic test for motor controller, turns left and right repeatedly
-//Uses timer1 library to call motor controller update function
+//Basic test for table sensors, prints sensor states (on/off table) continuously
 
 int rightFrontEdgeSensorPin = A0;
 int leftFrontEdgeSensorPin = A1;
