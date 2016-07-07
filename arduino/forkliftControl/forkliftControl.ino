@@ -66,6 +66,7 @@ void updateMotorController(void){
 //Main arduino sketch:
 
 void setup() {
+  //Serial.begin(9600);
   motorController.attach(forwardPin, backwardPin, leftPin, rightPin);
   Timer1.initialize();
   Timer1.attachInterrupt(updateMotorController, 200000); //update motor controller at 50 Hz
@@ -130,6 +131,7 @@ void loop() {
   if (nextMotionState != motionState){
     motionState = nextMotionState;
     currentStateStartTime = millis();
+    //printState(motionState);
   }
 
   //state outputs:

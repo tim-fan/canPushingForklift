@@ -61,6 +61,6 @@ void setup(){
 }
 
 void loop(){
-//  testAllDirections();
-  testChangeDirection();
+  testAllDirections();
+//  testChangeDirection();
 }
